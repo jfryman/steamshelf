@@ -21,9 +21,13 @@ Open work and pending decisions. Not a changelog.
   storefront would cut a first run substantially. HowLongToBeat should stay
   serial - it already rejects roughly one request in ten under a single-threaded
   load.
-- **Resume reporting.** The cache already makes an interrupted sweep cheap, but a
-  run that dies mid-sweep prints nothing. A partial-plan summary on interrupt
-  would make that less opaque.
+- **Persist the plan.** A sweep that completes and then fails at the upload -
+  which a fleet-wide CM 502 caused - discards the computed plan and has to
+  recompute it. The cache keeps that cheap (minutes, not an hour), so this is
+  convenience rather than necessity, but writing the plan to disk before
+  connecting would make the retry instant.
+- **Resume reporting.** A run that dies mid-sweep prints nothing. A partial-plan
+  summary on interrupt would make that less opaque.
 - **`--prune` for empty managed collections.** A bucket that ends up with zero
   games stays as an empty collection. Harmless, slightly untidy.
 - **Genre and tag families.** Depressurizer had them. The data is in `appdetails`

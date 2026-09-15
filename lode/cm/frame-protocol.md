@@ -95,7 +95,25 @@ Key details:
 | `ClientLogon` | 5514 |
 | `ClientHello` | 9805 |
 
+## Connecting
+
 Server list comes from `ISteamDirectory/GetCMListForConnect` with
-`cmtype=websockets`, sorted by `wtd_load` and tried in order.
+`cmtype=websockets`, sorted by `wtd_load`. `connect()` takes the top 24 and
+tries each in turn, then repeats the whole list up to three times with a
+15/30-second backoff.
+
+The limit matters more than it looks. At 8 the list is usually a single
+datacentre - every endpoint `cmp{1,2}-atl3` - so there is no real diversity to
+fall back on. At 24 it spans several.
+
+**Steam returns 502 across its entire fleet from time to time.** Observed twice
+in one evening, once for long enough to outlast three rounds of backoff, then
+clear within minutes. Treat a fleet-wide 502 as transient and retryable, not as
+a bug in the handshake: the Origin header, User-Agent and port make no
+difference, and a bare handshake fails identically during a window.
+
+This is worth waiting out because a sweep that has reached the upload step has
+an hour of scraping behind it. When it still fails, the cache makes the re-run
+cheap - see [../metadata/caching.md](../metadata/caching.md).
 
 Related: [wire-codec.md](wire-codec.md), [cloudconfigstore.md](cloudconfigstore.md)

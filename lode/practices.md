@@ -44,6 +44,15 @@ retried next run - never raised through the loop. The regression test
 `test_one_failed_lookup_does_not_end_the_sweep` exists because this was learned
 the hard way at game 357 of 753.
 
+## Distinguish "Steam is unwell" from "we are wrong"
+
+Steam's fleet returns 502 on every connection manager occasionally, and its
+storefront drops connections mid-sweep. Neither is a defect to debug; both are
+weather. They get retries and a plain one-line message, and they sit inside the
+`EXPECTED` tuple rather than escaping as tracebacks. Reserve real alarm for
+responses that are *consistent* - a 404 that never becomes a 401 is telling you
+something structural.
+
 ## Read broadly, write narrowly
 
 steamshelf reads every collection sharing a managed prefix so it knows what is

@@ -33,11 +33,20 @@ login, CM, scrape, plan, upload - in seconds.
 ## Error style
 
 Expected failures return `1` with a single `steamshelf: <message>` line on stderr,
-never a traceback. The exception types that get this treatment are
-`session.SessionError`, `store.StoreError`, `auth.AuthError` and
-`credentials.CredentialError`; each carries a message written for a user, not a
-developer - `"not logged in yet - run `steamshelf login`"` rather than
-`FileNotFoundError`.
+never a traceback. They are one tuple, applied uniformly:
+
+```python
+EXPECTED = (session.SessionError, store.StoreError, auth.AuthError, cm.CMError,
+            credentials.CredentialError)
+```
+
+Each carries a message written for a user, not a developer - `"not logged in yet
+- run `steamshelf login`"` rather than `FileNotFoundError`. Anything outside the
+tuple is a bug and deserves its traceback.
+
+`cm.CMError` belongs here because a Steam-side outage is an ordinary operational
+failure, not a defect; before it was added, a fleet-wide 502 during the
+collections read printed a stack trace.
 
 `KeyboardInterrupt` exits `130` with `Interrupted.`, which is safe at any point:
 nothing is written until the upload step.
