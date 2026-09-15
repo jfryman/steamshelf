@@ -183,6 +183,10 @@ def _print_plan(plan: engine.Plan, rule_config: rules.RuleConfig, *, verbose: bo
                 bits.append(f"-{len(remove)}")
             print(f"  {name:<42} {' '.join(bits)}")
 
+    if plan.retry_later:
+        print(f"\n{len(plan.retry_later)} game(s) kept their current playtime bucket because "
+              "HowLongToBeat was unreachable; re-run to pick them up.")
+
     if plan.skipped:
         reasons = Counter(reason for _game, reason in plan.skipped)
         print("\nSkipped: " + ", ".join(f"{count} {reason}" for reason, count in reasons.most_common()))

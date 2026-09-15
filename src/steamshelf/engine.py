@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from . import rules
 from .collections import Collection, CollectionSet
-from .hltb import HltbClient, HltbResult
+from .hltb import HltbClient, HltbError, HltbResult
 from .rules import RuleConfig
 from .steamapi import AppMetadata, OwnedGame, SteamClient
 
@@ -51,6 +51,7 @@ class GamePlan:
 class Plan:
     games: list[GamePlan] = field(default_factory=list)
     skipped: list[tuple[OwnedGame, str]] = field(default_factory=list)
+    retry_later: list[tuple[OwnedGame, str]] = field(default_factory=list)
 
     def changes(self) -> list[GamePlan]:
         return [g for g in self.games if g.changed]
@@ -127,13 +128,27 @@ def build_plan(
             plan.skipped.append((game, "no store page"))
             continue
 
-        result = hltb.lookup(game.appid, meta.name or game.name) if want_hltb else None
+        result = None
+        hltb_failed = False
+        if want_hltb:
+            try:
+                result = hltb.lookup(game.appid, meta.name or game.name)
+            except HltbError:
+                hltb_failed = True
+
+        desired = rules.categories_for(meta, result, config)
+        if hltb_failed:
+            # Leaving the family out means no additions and no removals for it,
+            # so the game keeps its current bucket and is picked up again later.
+            desired.pop(rules.HLTB, None)
+            plan.retry_later.append((game, "HowLongToBeat lookup failed"))
+
         plan.games.append(
             GamePlan(
                 game=game,
                 meta=meta,
                 hltb=result,
-                desired=rules.categories_for(meta, result, config),
+                desired=desired,
                 current=membership.get(game.appid, set()),
             )
         )

@@ -228,10 +228,10 @@ class HltbClient:
         if cached is not None:
             return HltbResult(**cached) if cached else None
 
-        try:
-            candidates = self.search(title)
-        except HltbError:
-            return None  # a transient HLTB failure shouldn't poison the cache
+        # A transport failure is not the same as "this game isn't on HLTB", and
+        # must not be cached or turned into an Unknown bucket; let it propagate
+        # so the caller can leave the game alone and retry on the next run.
+        candidates = self.search(title)
 
         best: HltbResult | None = None
         wanted = normalize(title)
