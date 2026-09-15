@@ -10,12 +10,16 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from . import auth, credentials, engine, rules, session, store
+from . import auth, cm, credentials, engine, rules, session, store
 from . import config as config_mod
 from .cache import Cache
 from .collections import CollectionSet
 from .hltb import HltbClient
 from .steamapi import OwnedGame, SteamClient
+
+# Failures a user can act on. Anything else is a bug and deserves its traceback.
+EXPECTED = (session.SessionError, store.StoreError, auth.AuthError, cm.CMError,
+            credentials.CredentialError)
 
 
 def _err(message: str) -> int:
@@ -89,7 +93,7 @@ def cmd_collections(args: argparse.Namespace) -> int:
     try:
         current = session.load()
         collection_set = _load_collections(current, args)
-    except (session.SessionError, store.StoreError) as exc:
+    except EXPECTED as exc:
         return _err(str(exc))
 
     rule_config = config_mod.load().rules()
@@ -196,7 +200,7 @@ def _print_plan(plan: engine.Plan, rule_config: rules.RuleConfig, *, verbose: bo
 def cmd_plan(args: argparse.Namespace) -> int:
     try:
         _current, rule_config, _collections, plan = _gather(args)
-    except (session.SessionError, store.StoreError, auth.AuthError) as exc:
+    except EXPECTED as exc:
         return _err(str(exc))
     if plan is None:
         return 0
@@ -208,7 +212,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
 def cmd_apply(args: argparse.Namespace) -> int:
     try:
         current, rule_config, collection_set, plan = _gather(args)
-    except (session.SessionError, store.StoreError, auth.AuthError) as exc:
+    except EXPECTED as exc:
         return _err(str(exc))
     if plan is None:
         return 0
@@ -241,7 +245,7 @@ def cmd_apply(args: argparse.Namespace) -> int:
             )
             merged = engine.apply_plan(plan, fresh, rule_config)
             version = cloud.write(merged, fresh.namespace_version)
-    except Exception as exc:  # noqa: BLE001 - surface any transport failure plainly
+    except EXPECTED as exc:
         return _err(f"upload failed: {exc}")
 
     print(f"Done. Namespace is now at version {version}.")
@@ -257,7 +261,7 @@ def cmd_backup(args: argparse.Namespace) -> int:
             current.account_name, current.refresh_token, current.steamid
         ) as cloud:
             raw = cloud.read_raw()
-    except (session.SessionError, store.StoreError) as exc:
+    except EXPECTED as exc:
         return _err(str(exc))
 
     target = Path(args.output) if args.output else store.snapshot_path(current.steamid)
