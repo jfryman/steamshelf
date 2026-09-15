@@ -120,7 +120,7 @@ class CMError(RuntimeError):
         self.eresult = eresult
 
 
-def _servers(limit: int = 8) -> list[str]:
+def _servers(limit: int = 24) -> list[str]:
     data = http.get_json(
         "https://api.steampowered.com/ISteamDirectory/GetCMListForConnect/v1/",
         params={"cellid": 0, "cmtype": "websockets", "format": "json"},
@@ -144,7 +144,13 @@ class CMClient:
 
     # -- transport -----------------------------------------------------------
 
-    def connect(self) -> None:
+    def connect(self, rounds: int = 3) -> None:
+        """Open a session, trying every advertised CM before giving up.
+
+        Steam occasionally answers the websocket handshake with 502 across its
+        whole fleet for a minute or two.  A sweep that reaches the upload step
+        has an hour of scraping behind it, so this is worth waiting out.
+        """
         try:
             import websocket  # noqa: PLC0415  (optional-ish, heavy import)
         except ImportError as exc:  # pragma: no cover
@@ -154,18 +160,28 @@ class CMClient:
             ) from exc
 
         last: Exception | None = None
-        for endpoint in _servers():
+        for attempt in range(rounds):
             try:
-                self._ws = websocket.create_connection(
-                    f"wss://{endpoint}/cmsocket/",
-                    timeout=self._timeout,
-                    origin="https://steamcommunity.com",
-                    header={"User-Agent": http.USER_AGENT},
-                )
-                return
-            except (TimeoutError, OSError, Exception) as exc:  # noqa: BLE001
-                last = exc
-        raise CMError(f"could not reach any Steam connection manager: {last}")
+                endpoints = _servers()
+            except Exception as exc:  # noqa: BLE001 - the directory can blip too
+                last, endpoints = exc, []
+            for endpoint in endpoints:
+                try:
+                    self._ws = websocket.create_connection(
+                        f"wss://{endpoint}/cmsocket/",
+                        timeout=self._timeout,
+                        origin="https://steamcommunity.com",
+                        header={"User-Agent": http.USER_AGENT},
+                    )
+                    return
+                except Exception as exc:  # noqa: BLE001 - any failure, try the next one
+                    last = exc
+            if attempt < rounds - 1:
+                time.sleep(15 * (attempt + 1))
+
+        # websocket-client appends the response headers and body to its message.
+        summary = str(last).split(" -+-+- ")[0]
+        raise CMError(f"could not reach any Steam connection manager: {summary}")
 
     def close(self) -> None:
         if self._ws is not None:
