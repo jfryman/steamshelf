@@ -71,3 +71,31 @@ def test_apply_plan_only_touches_affected_collections():
     assert cs.by_name("(HLTB)  5-10").added == [70]
     assert cs.by_name("(HLTB) 10-20").added == [620]
     assert untouched.added == [1, 2]
+
+
+class _BoomSteam:
+    """A storefront client that fails for one app and works for the rest."""
+
+    def __init__(self, bad_appid: int):
+        self.bad_appid = bad_appid
+
+    def metadata(self, appid, name="", *, want_deck=True):
+        if appid == self.bad_appid:
+            raise TimeoutError("the read operation timed out")
+        return AppMetadata(appid=appid, name=name, app_type="game", windows=True)
+
+
+class _NoHltb:
+    def lookup(self, appid, title):
+        return None
+
+
+def test_one_failed_lookup_does_not_end_the_sweep():
+    config = RuleConfig()
+    config.enabled.update({"hltb": False, "rating": False, "deck": False})
+    games = [OwnedGame(appid=i, name=f"Game {i}") for i in (70, 220, 620)]
+
+    plan = engine.build_plan(games, {}, _BoomSteam(220), _NoHltb(), config)
+
+    assert [p.game.appid for p in plan.games] == [70, 620]
+    assert [g.appid for g, _reason in plan.retry_later] == [220]

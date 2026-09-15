@@ -119,7 +119,13 @@ def build_plan(
         if progress:
             progress(index, len(targets), game)
 
-        meta = steam.metadata(game.appid, game.name, want_deck=want_deck)
+        try:
+            meta = steam.metadata(game.appid, game.name, want_deck=want_deck)
+        except Exception as exc:  # noqa: BLE001 - a whole library sweep is too
+            # expensive to throw away because one app's lookup went wrong.
+            plan.retry_later.append((game, f"Steam lookup failed: {exc}"))
+            continue
+
         if meta.app_type in SKIP_TYPES:
             plan.skipped.append((game, f"not a game ({meta.app_type})"))
             continue
@@ -133,7 +139,7 @@ def build_plan(
         if want_hltb:
             try:
                 result = hltb.lookup(game.appid, meta.name or game.name)
-            except HltbError:
+            except (HltbError, OSError, TimeoutError):
                 hltb_failed = True
 
         desired = rules.categories_for(meta, result, config)

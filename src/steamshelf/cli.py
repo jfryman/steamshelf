@@ -184,8 +184,9 @@ def _print_plan(plan: engine.Plan, rule_config: rules.RuleConfig, *, verbose: bo
             print(f"  {name:<42} {' '.join(bits)}")
 
     if plan.retry_later:
-        print(f"\n{len(plan.retry_later)} game(s) kept their current playtime bucket because "
-              "HowLongToBeat was unreachable; re-run to pick them up.")
+        reasons = Counter(reason.split(":")[0] for _game, reason in plan.retry_later)
+        print(f"\n{len(plan.retry_later)} game(s) left as they are and worth a re-run: "
+              + ", ".join(f"{count} {reason}" for reason, count in reasons.most_common()))
 
     if plan.skipped:
         reasons = Counter(reason for _game, reason in plan.skipped)

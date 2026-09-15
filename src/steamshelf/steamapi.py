@@ -120,6 +120,12 @@ class SteamClient:
                 # The storefront's window is five minutes; backing off hard beats
                 # hammering it and getting the whole run blocked.
                 time.sleep(20 * (attempt + 1))
+            except (OSError, TimeoutError):
+                # A dropped connection mid-run is common over a long library
+                # sweep and says nothing about the app we asked for.
+                if attempt == 3:
+                    raise
+                time.sleep(2 * (attempt + 1))
         raise RuntimeError("unreachable")
 
     def app_details(self, appid: int) -> dict | None:
