@@ -145,9 +145,12 @@ def build_plan(
 
         desired = rules.categories_for(meta, result, config)
         if hltb_failed:
-            # Leaving the family out means no additions and no removals for it,
-            # so the game keeps its current bucket and is picked up again later.
+            # Leaving a family out means no additions and no removals for it, so
+            # the game keeps its current buckets and is picked up again later.
+            # Year goes too: without HowLongToBeat it would fall back to Steam's
+            # listing date, file the game in the wrong year, and settle there.
             desired.pop(rules.HLTB, None)
+            desired.pop(rules.YEAR, None)
             plan.retry_later.append((game, "HowLongToBeat lookup failed"))
 
         plan.games.append(

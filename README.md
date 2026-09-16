@@ -5,6 +5,9 @@ A command line tool that files uncategorized Steam games into collections, using
 - **How long it takes to beat**, from [HowLongToBeat](https://howlongtobeat.com)
 - **The platforms it runs on**, from the Steam storefront, plus Steam Deck compatibility
 - **Its overall review score**, from Steam's own review summary
+- **Its release year**, taken from HowLongToBeat rather than the Steam store page,
+  which reports when a game was *listed on Steam* (Indiana Jones and the Last
+  Crusade, 1989, shows there as 2009)
 
 It is a spiritual successor to [Depressurizer](https://github.com/Depressurizer/Depressurizer),
 which is Windows-only and edits `sharedconfig.vdf` — a file modern Steam no
@@ -15,8 +18,13 @@ The default collection names match Depressurizer's, so if you have used it
 before, steamshelf extends the collections you already have:
 
 ```
-(HLTB) 10-20        (Platform) Linux        (Score) Very Positive       (Deck) Verified
+(HLTB) 10-20   (Platform) Linux   (Score) Very Positive   (Deck) Verified   (Year) 2011
 ```
+
+Every family also has a bucket for "no answer" - `(HLTB) Unknown`,
+`(Score) Unrated`, `(Deck) Unknown`, `(Year) Unknown`. That is deliberate: a game
+that joins no collection for a family looks uncategorized forever, and would be
+re-examined on every run.
 
 ## Install
 
@@ -93,7 +101,8 @@ buckets = [
 ]
 ```
 
-A `year` family (`(Year) 2019`) is available but off by default.
+Turn a family off entirely under `[categories.enable]`, and rename the
+"no answer" buckets under `[categories.deck]` and `[categories.year]`.
 
 ## How it works
 

@@ -4,10 +4,6 @@ Open work and pending decisions. Not a changelog.
 
 ## Decided, not built
 
-- **`year` family off by default.** The code supports `(Year) 2019` and the user's
-  library has those collections from Depressurizer, stopping at 2023. Turning it
-  on would refile the whole library on a dimension that was not asked for. Left to
-  the user via config.
 - **No multi-account support.** The SteamID is whatever logs in, read off the
   session everywhere; nothing is pinned to one account. A `--steamid` override
   would only matter for pointing `--source local` or `--include-client-apps` at a

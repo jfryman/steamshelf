@@ -1,5 +1,6 @@
 from steamshelf import engine
 from steamshelf.collections import Collection, CollectionSet
+from steamshelf.hltb import HltbError
 from steamshelf.rules import RuleConfig
 from steamshelf.steamapi import AppMetadata, OwnedGame
 
@@ -17,7 +18,7 @@ def test_a_game_missing_one_family_needs_filing():
 
 def test_a_fully_filed_game_is_left_alone():
     config = RuleConfig()
-    config.enabled["deck"] = False
+    config.enabled.update({"deck": False, "year": False})
     cs = collection_set(
         Collection(id="uc-1", name="(HLTB) 10-20", added=[620]),
         Collection(id="uc-2", name="(Platform) Windows", added=[620]),
@@ -114,3 +115,36 @@ def test_membership_of_a_foreign_collection_is_not_a_pending_change():
     )
     assert item.removals(config) == set()
     assert not item.is_changed(config)
+
+
+def test_an_unknown_answer_still_settles():
+    """A family that answers "unknown" files a collection, so the game settles.
+
+    Without this, needs_filing() flags the game on every run forever.
+    """
+    config = RuleConfig()
+    cs = collection_set(
+        Collection(id="uc-1", name="(HLTB) Unknown", added=[620]),
+        Collection(id="uc-2", name="(Platform) Windows", added=[620]),
+        Collection(id="uc-3", name="(Score) Unrated", added=[620]),
+        Collection(id="uc-4", name="(Deck) Unknown", added=[620]),
+        Collection(id="uc-5", name="(Year) Unknown", added=[620]),
+    )
+    assert not engine.needs_filing(620, engine.managed_membership(cs, config), config)
+
+
+class _FlakyHltb:
+    def lookup(self, appid, title):
+        raise HltbError("session expired or invalid fingerprint")
+
+
+def test_a_failed_hltb_lookup_defers_year_too():
+    """Steam's listing date is not a safe fallback when HLTB merely failed."""
+    config = RuleConfig()
+    games = [OwnedGame(appid=620, name="Portal 2")]
+    plan = engine.build_plan(games, {}, _BoomSteam(0), _FlakyHltb(), config)
+
+    assert len(plan.games) == 1
+    desired = plan.games[0].desired
+    assert "hltb" not in desired and "year" not in desired
+    assert [g.appid for g, _r in plan.retry_later] == [620]

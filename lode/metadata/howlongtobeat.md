@@ -45,6 +45,17 @@ transient), later ones force a fresh session.
 `comp_main`, `comp_plus`, `comp_100`, `comp_all` are seconds. Portal 2's
 `comp_main` is `30924` = 8.6 hours. Divide by 3600.
 
+## release_world is the original release year
+
+Search rows carry `release_world`, the worldwide release year, which is the
+right source for the `year` family - Steam's `release_date` gives the store
+listing date instead. It lands on `HltbResult.release_year`.
+
+Because it lives on the cached `HltbResult`, adding it meant clearing the `hltb`
+cache scope and re-running; entries cached before it existed decode with
+`release_year = 0` and silently fall back to Steam's date. Worth remembering
+whenever a field is added to a cached dataclass.
+
 ## Title matching
 
 `profile_steam` is not present in search results, so matching is on normalized

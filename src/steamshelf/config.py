@@ -28,7 +28,7 @@ hltb = true
 platform = true
 rating = true
 deck = true
-year = false
+year = true
 
 [categories.prefixes]
 hltb = "HLTB"
@@ -55,6 +55,18 @@ buckets = [
 # Steam scores computed from fewer reviews than this are filed as "Unrated".
 min_reviews = 25
 unrated = "Unrated"
+
+[categories.deck]
+# Valve reports "Unknown" for anything it has not tested on a Steam Deck.
+# Every family needs a bucket for "no answer", or games missing one are
+# re-examined on every run instead of settling.
+unknown = "Unknown"
+# Deck states to file nothing for, e.g. ["Unknown"] to leave untested games out.
+skip = []
+
+[categories.year]
+# Games whose store page has no usable release date.
+unknown = "Unknown"
 '''
 
 
@@ -74,8 +86,12 @@ class Config:
         section = self.data.get("categories", {})
         base = RuleConfig()
 
-        hltb = section.get("hltb") if isinstance(section.get("hltb"), dict) else {}
-        rating = section.get("rating") if isinstance(section.get("rating"), dict) else {}
+        def table(name: str) -> dict:
+            value = section.get(name)
+            return value if isinstance(value, dict) else {}
+
+        hltb, rating = table("hltb"), table("rating")
+        deck, year = table("deck"), table("year")
         prefixes = dict(base.prefixes)
         prefixes.update(section.get("prefixes", {}))
 
@@ -100,6 +116,9 @@ class Config:
             hltb_unknown=hltb.get("unknown", base.hltb_unknown),
             min_reviews=int(rating.get("min_reviews", base.min_reviews)),
             rating_unrated=rating.get("unrated", base.rating_unrated),
+            deck_unknown=deck.get("unknown", base.deck_unknown),
+            deck_skip=tuple(deck.get("skip", base.deck_skip)),
+            year_unknown=year.get("unknown", base.year_unknown),
         )
 
 

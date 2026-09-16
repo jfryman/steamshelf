@@ -79,6 +79,10 @@ class HltbResult:
     main_extra_hours: float = 0.0
     completionist_hours: float = 0.0
     all_styles_hours: float = 0.0
+    # Original worldwide release year. Steam's own release_date is the date the
+    # game was listed on Steam, which for anything older than the store itself
+    # is wrong -- Indiana Jones and the Last Crusade (1989) reads as 2009.
+    release_year: int = 0
     steam_appid: int = 0
     confidence: float = 0.0
 
@@ -217,6 +221,7 @@ class HltbClient:
                     main_extra_hours=round(row.get("comp_plus", 0) / 3600, 1),
                     completionist_hours=round(row.get("comp_100", 0) / 3600, 1),
                     all_styles_hours=round(row.get("comp_all", 0) / 3600, 1),
+                    release_year=int(row.get("release_world", 0) or 0),
                     steam_appid=int(row.get("profile_steam", 0) or 0),
                 )
             )

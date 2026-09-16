@@ -73,6 +73,22 @@ This is what moves a game between buckets when HowLongToBeat data changes, and
 what reconciles `(Score) Positive` -> `(Score) Very Positive` after years of
 review drift.
 
+## Invariant: every family must always answer
+
+A family that evaluates to no collection leaves the game with no membership for
+it, so `needs_filing()` flags that game on every run - it never settles. Measured
+on a real account: immediately after a clean full apply, a plain incremental run
+still targeted 203 of 778 apps, all of them because Valve had not Deck-tested
+them and `deck_skip` dropped the category.
+
+So each family has a bucket for "no answer": `(HLTB) Unknown`, `(Score) Unrated`,
+`(Deck) Unknown`, `(Year) Unknown`. `platform` is the sole exception - an app
+with no store page genuinely runs nowhere, and there is no useful bucket for it.
+
+`deck_skip` is kept as an escape hatch and defaults to empty; setting it to
+`["Unknown"]` restores the old drop-it behaviour, at the cost of those games
+never settling.
+
 ## Counting a change honestly
 
 `GamePlan.is_changed(config)` is `additions or removals(config)`, **not**

@@ -52,7 +52,7 @@ class RuleConfig:
             PLATFORM: True,
             RATING: True,
             DECK: True,
-            YEAR: False,
+            YEAR: True,
         }
     )
 
@@ -65,8 +65,14 @@ class RuleConfig:
     # Steam scores computed from a handful of reviews are noise.
     min_reviews: int = 25
     rating_unrated: str = "Unrated"
-    # Steam reports "Unknown" for anything it has not tested on the Deck.
-    deck_skip: tuple[str, ...] = ("Unknown",)
+    # Every family that can legitimately come back with no answer needs a bucket
+    # to say so.  Without one the game joins no collection for that family, and
+    # needs_filing() keeps flagging it on every run -- it never settles.
+    deck_unknown: str = "Unknown"
+    year_unknown: str = "Unknown"
+    # Deck states to file nothing for. Empty by default; set to ["Unknown"] to
+    # go back to leaving untested games out of the Deck family entirely.
+    deck_skip: tuple[str, ...] = ()
     platform_labels: tuple[str, ...] = ("Windows", "Mac", "Linux")
 
     def label(self, family: str, value: str) -> str:
@@ -105,7 +111,9 @@ class RuleConfig:
         elif family == RATING:
             values = set(REVIEW_TIERS) | {self.rating_unrated}
         elif family == DECK:
-            values = set(DECK_CATEGORIES.values()) - set(self.deck_skip)
+            values = (set(DECK_CATEGORIES.values()) | {self.deck_unknown}) - set(self.deck_skip)
+        elif family == YEAR:
+            values = {self.year_unknown}
         else:
             return set()
         return {self.label(family, value) for value in values}
@@ -122,7 +130,9 @@ class RuleConfig:
             return False
         if family == YEAR:
             marker = self.family_prefix(YEAR)
-            return bool(re.fullmatch(r"(19|20)\d{2}", collection_name[len(marker):]))
+            suffix = collection_name[len(marker) :]
+            # A bare "(Year)" left by another tool has no suffix and is not ours.
+            return bool(re.fullmatch(r"(19|20)\d{2}", suffix)) or suffix == self.year_unknown
         return collection_name in self.known_labels(family)
 
 
@@ -153,12 +163,15 @@ def categories_for(
         result[RATING] = [config.label(RATING, value)]
 
     if config.enabled.get(DECK):
-        result[DECK] = (
-            [] if meta.deck in config.deck_skip else [config.label(DECK, meta.deck)]
-        )
+        deck = meta.deck or config.deck_unknown
+        result[DECK] = [] if deck in config.deck_skip else [config.label(DECK, deck)]
 
     if config.enabled.get(YEAR):
-        result[YEAR] = [config.label(YEAR, str(meta.release_year))] if meta.release_year else []
+        # HowLongToBeat's release_world is the original release; Steam's
+        # release_date is when the game arrived on Steam. Prefer the former.
+        value = (hltb.release_year if hltb else 0) or meta.release_year
+        year = str(value) if value else config.year_unknown
+        result[YEAR] = [config.label(YEAR, year)]
 
     return result
 

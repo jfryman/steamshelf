@@ -57,14 +57,19 @@ if family and self.desired.get(family) is not None and config.can_produce(name):
 
 ## Families
 
-`hltb`, `platform`, `rating`, `deck`, `year`. `deck` is new relative to
-Depressurizer; `year` exists for compatibility with `(Year) 2019` collections but
-is **off by default**, since the user asked for three dimensions and enabling it
-would rewrite a fourth.
+`hltb`, `platform`, `rating`, `deck`, `year`, all on by default. `deck` is new
+relative to Depressurizer; `year` reproduces its `(Year) 2019` collections.
+
+Depressurizer also left a **bare `(Year)`** collection - its "could not date
+this" bucket. The family prefix carries a trailing space, so `"(Year)"` does not
+even match `owns()`: it is neither read as filing nor ever written to. Games in
+it that can now be dated join a proper `(Year) 2013` and stay in the bare one as
+well, so it is worth deleting by hand once.
 
 `known_labels(family)` enumerates what a family can emit - bucket labels for
 `hltb`, Steam's nine review tiers plus `Unrated` for `rating`, and so on. `year`
-is the exception and is matched by regex, since any four-digit year is legitimate.
+is the exception and is matched by regex (`(19|20)\d{2}`) or the literal
+unknown label, since any four-digit year is legitimate.
 
 Related: [collection-model.md](collection-model.md),
 [../pipeline/selection-and-planning.md](../pipeline/selection-and-planning.md)

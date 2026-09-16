@@ -52,7 +52,12 @@ let one app's failure end the sweep - see
   so `(Score) Very Positive` matches what the store page says.
 - `resolved_category` 0-3 -> `Unknown` / `Unsupported` / `Playable` / `Verified`.
 - `release_date.date` is free text; the year is regex-extracted and skipped when
-  `coming_soon` is set.
+  `coming_soon` is set. **It is the date the game was listed on Steam, not when
+  it came out.** Indiana Jones and the Last Crusade (1989) reads as Jul 8 2009,
+  System Shock 2 (1999) as 2013, The Curse of Monkey Island (1997) as 2018.
+  Anything older than the Steam store is wrong here, so the `year` family uses
+  HowLongToBeat's `release_world` first and falls back to this only when there
+  is no HLTB match. See [howlongtobeat.md](howlongtobeat.md).
 
 ## Apps that are not games
 
