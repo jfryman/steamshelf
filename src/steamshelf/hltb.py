@@ -34,6 +34,10 @@ NOISE = re.compile(
     re.I,
 )
 TRAILING_JUNK = re.compile(r"\b(vr|hd|steam edition|pc edition|windows edition)\b$", re.I)
+# A parenthesised year is an annotation Steam adds to disambiguate a re-release,
+# not part of the name: "System Shock 2 (1999)". Left in, it reads as a sequel
+# marker and blocks the match. Bare years stay ("FIFA 2003" really is the title).
+PAREN_YEAR = re.compile(r"\((19|20)\d{2}\)")
 
 # Tokens that distinguish a sequel from its predecessor; a match has to agree on
 # these even when one side carries a subtitle the other does not.
@@ -65,6 +69,7 @@ def normalize(title: str) -> str:
     # Drop apostrophes rather than splitting on them, so "Baldur's" stays one word.
     text = re.sub(r"[’'ʼ]", "", text)
     text = re.sub(r"[™®©]", "", text)
+    text = PAREN_YEAR.sub(" ", text)
     text = NOISE.sub(" ", text)
     text = TRAILING_JUNK.sub(" ", text)
     text = re.sub(r"[^a-z0-9]+", " ", text)

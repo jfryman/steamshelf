@@ -61,8 +61,15 @@ whenever a field is added to a cached dataclass.
 `profile_steam` is not present in search results, so matching is on normalized
 titles. `normalize()` lowercases, drops apostrophes **without splitting the word**
 (`Baldur's` -> `baldurs`, not `baldur s`, which broke the search), strips
-trademark glyphs and edition noise (`Game of the Year Edition`, `Definitive`,
-`Director's Cut`, ...), then reduces to alphanumeric tokens.
+trademark glyphs, a **parenthesised year**, and edition noise (`Game of the Year
+Edition`, `Definitive`, `Director's Cut`, ...), then reduces to alphanumeric
+tokens.
+
+The parenthesised year is the subtle one. Steam lists `System Shock® 2 (1999)`;
+left in, `1999` reads as a sequel marker, the guard below rejects HowLongToBeat's
+`System Shock 2`, and the game lands in `(HLTB) Unknown` *and* gets its year from
+Steam's 2013 listing date. Only parenthesised years are stripped - `FIFA 2003`
+really is called that.
 
 `title_similarity()` is `difflib` ratio plus one rule:
 

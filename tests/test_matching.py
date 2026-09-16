@@ -32,3 +32,15 @@ def test_exact_match_beats_a_prefix_match():
     assert title_similarity(query, normalize("Portal 2")) > title_similarity(
         query, normalize("Portal 2: Sixense Perceptual Pack")
     )
+
+
+def test_a_parenthesised_year_is_not_part_of_the_name():
+    # Steam lists this as "System Shock 2 (1999)"; HowLongToBeat as "System Shock 2".
+    assert normalize("System Shock® 2 (1999)") == "system shock 2"
+    assert title_similarity(normalize("System Shock® 2 (1999)"),
+                            normalize("System Shock 2")) >= 0.95
+
+
+def test_a_bare_year_in_a_title_is_kept():
+    assert normalize("FIFA 2003") == "fifa 2003"
+    assert title_similarity(normalize("FIFA 2003"), normalize("FIFA 2004")) < 0.95
