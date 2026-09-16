@@ -9,7 +9,7 @@ rename:
 
 ```json
 {
-  "steamid": 76561198020885186,
+  "steamid": 76561197960287930,
   "account_name": "...",
   "refresh_token": "eyJ...",
   "access_token": "eyJ...",
