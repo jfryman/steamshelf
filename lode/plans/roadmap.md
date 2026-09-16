@@ -8,6 +8,11 @@ Open work and pending decisions. Not a changelog.
   library has those collections from Depressurizer, stopping at 2023. Turning it
   on would refile the whole library on a dimension that was not asked for. Left to
   the user via config.
+- **No multi-account support.** The SteamID is whatever logs in, read off the
+  session everywhere; nothing is pinned to one account. A `--steamid` override
+  would only matter for pointing `--source local` or `--include-client-apps` at a
+  second account's `userdata/` without logging out. Deliberately not built - it
+  is an edge to cover if it ever actually comes up.
 - **`(Platform) SteamOS` left alone.** Depressurizer used it as a duplicate of the
   Linux flag. The modern equivalent is Deck compatibility, which is its own
   family. The old collection is read, never written.
