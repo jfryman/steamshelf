@@ -35,6 +35,23 @@ local`, sanity-checking a cloud read, and as a free backup of pre-run state.
 it, syncs from the cloud, and would overwrite anything put there. All writes go
 through [../cm/cloudconfigstore.md](../cm/cloudconfigstore.md).
 
+## localconfig.vdf: which apps the client knows
+
+A sibling file, `config/localconfig.vdf`, carries per-app client state under
+`Software/Valve/Steam/apps`. `store.client_known_appids()` brace-matches that
+block and pulls the appids out:
+
+```python
+block = _apps_block(local.read_text(errors="replace"))
+return {int(m.group(1)) for m in re.finditer(r'^\t*"(\d{1,8})"\s*$', block, re.M)}
+```
+
+Brace matching is necessary, not fussiness - a naive scan forward from `"apps"`
+runs on into `friends` and other sections and harvests steamids as appids.
+
+This is how family-shared and never-launched free-to-play titles are found; see
+[../pipeline/selection-and-planning.md](../pipeline/selection-and-planning.md).
+
 ## Related dead end: sharedconfig.vdf
 
 `userdata/<steamid3>/7/remote/sharedconfig.vdf` is where Depressurizer wrote

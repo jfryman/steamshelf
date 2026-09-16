@@ -133,7 +133,16 @@ def _gather(args: argparse.Namespace) -> tuple[Any, ...]:
 
     collection_set = _load_collections(current, args)
     owned = steam.owned_games(current.steamid, current.web_token())
-    print(f"Library: {len(owned)} apps; {len(collection_set.live())} collections.")
+    note = ""
+    if args.include_client_apps:
+        known = {g.appid for g in owned}
+        # Family-shared and never-launched free-to-play titles show in the
+        # library but are not "owned", so Steam's API never reports them.
+        extra = [OwnedGame(appid=a, name="") for a in sorted(
+            store.client_known_appids(current.steamid3) - known)]
+        owned.extend(extra)
+        note = f" (+{len(extra)} known only to the local client)"
+    print(f"Library: {len(owned)} apps{note}; {len(collection_set.live())} collections.")
 
     targets, membership = engine.select_targets(
         owned, collection_set, rule_config, force_all=args.all
@@ -161,7 +170,7 @@ def _gather(args: argparse.Namespace) -> tuple[Any, ...]:
 
 
 def _print_plan(plan: engine.Plan, rule_config: rules.RuleConfig, *, verbose: bool) -> None:
-    changes = plan.changes()
+    changes = plan.changes(rule_config)
     print(f"\n{len(changes)} game(s) would change; {len(plan.skipped)} skipped.")
 
     if verbose:
@@ -218,7 +227,7 @@ def cmd_apply(args: argparse.Namespace) -> int:
         return 0
 
     _print_plan(plan, rule_config, verbose=args.verbose)
-    if not plan.changes():
+    if not plan.changes(rule_config):
         print("\nNothing to write.")
         return 0
 
@@ -331,6 +340,10 @@ def build_parser() -> argparse.ArgumentParser:
         cmd.add_argument("--app", type=int, action="append", metavar="APPID",
                          help="only consider this app id (repeatable)")
         cmd.add_argument("--limit", type=int, help="stop after this many games")
+        cmd.add_argument("--include-client-apps", action="store_true",
+                         help="also consider apps the installed Steam client knows about "
+                              "but the account does not own - family-shared titles and "
+                              "never-launched free-to-play games")
         cmd.add_argument("--source", choices=("cloud", "local"), default="cloud",
                          help="read existing collections from Steam's cloud (default) "
                               "or the local client mirror")

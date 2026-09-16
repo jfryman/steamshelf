@@ -46,3 +46,40 @@ def test_ensure_reuses_a_collection_by_name():
     cs = CollectionSet(collections={"uc-1": Collection(id="uc-1", name="(Deck) Verified")})
     assert cs.ensure("(Deck) Verified").id == "uc-1"
     assert cs.ensure("(Deck) Playable").id != "uc-1"
+
+
+def test_apps_block_is_brace_matched():
+    from steamshelf.store import _apps_block
+
+    vdf = '''"UserLocalConfigStore"
+{
+\t"Software"
+\t{
+\t\t"Valve"
+\t\t{
+\t\t\t"Steam"
+\t\t\t{
+\t\t\t\t"apps"
+\t\t\t\t{
+\t\t\t\t\t"70"
+\t\t\t\t\t{
+\t\t\t\t\t\t"LastPlayed"\t\t"1700000000"
+\t\t\t\t\t}
+\t\t\t\t\t"548430"
+\t\t\t\t\t{
+\t\t\t\t\t}
+\t\t\t\t}
+\t\t\t}
+\t\t}
+\t}
+\t"friends"
+\t{
+\t\t"99999999"
+\t\t{
+\t\t}
+\t}
+}'''
+    block = _apps_block(vdf)
+    assert '"70"' in block and '"548430"' in block
+    # The friends section sits outside the matched braces and must not leak in.
+    assert "99999999" not in block

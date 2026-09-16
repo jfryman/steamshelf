@@ -24,6 +24,25 @@ That is correct but expensive; it is a one-time cost per family.
 Membership is computed only from collections `config.owns()`, and built-in
 collections never count - being in `Favorites` does not mean a game is filed.
 
+## The library is bigger than "owned"
+
+`IPlayerService/GetOwnedGames` reports ownership, not what the library displays.
+Measured on a real account: 753 owned apps, but the installed client tracks 312
+appids of which 25 are not owned, and 12 of those 25 have real game store pages:
+
+- **Family Sharing** - Half-Life 2: Episode One, SpyParty, Deep Rock Galactic
+- **never-launched free-to-play** - SteamVR, VTube Studio, Animaze, and similar
+
+Neither `include_played_free_games=1` nor `include_free_sub=1` brings them back;
+this was tested and both return the identical 753. The only practical source is
+the client's own `localconfig.vdf`, read by `store.client_known_appids()` and
+folded in behind `--include-client-apps`.
+
+The residue after that is tools and runtimes - Proton, Steam Linux Runtime, Steam
+Controller configs, appid 7 - plus demos. They have no store page or a
+non-`game` type, so the usual skip rules drop them, and Steam files them under
+Tools rather than showing them as uncategorized games.
+
 ## Desired categories
 
 `rules.categories_for()` returns a dict keyed by family, not a flat set:
@@ -53,6 +72,15 @@ created. See [../collections/naming-and-ownership.md](../collections/naming-and-
 This is what moves a game between buckets when HowLongToBeat data changes, and
 what reconciles `(Score) Positive` -> `(Score) Very Positive` after years of
 review drift.
+
+## Counting a change honestly
+
+`GamePlan.is_changed(config)` is `additions or removals(config)`, **not**
+`additions or (current - desired)`. The difference is large: a game sitting in a
+collection we may not write - `(Platform) SteamOS` - has a name in `current` that
+never appears in `desired`, so the naive test flagged 264 games as changing when
+only about 30 memberships actually moved. Take the config into account or the
+plan summary lies.
 
 ## Failure buckets
 

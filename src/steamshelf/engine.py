@@ -42,9 +42,10 @@ class GamePlan:
                 stale.add(name)
         return stale
 
-    @property
-    def changed(self) -> bool:
-        return bool(self.additions or self.current - self.desired_names)
+    def is_changed(self, config: RuleConfig) -> bool:
+        # Membership of a collection we may not write -- "(Platform) SteamOS",
+        # say -- is not a pending change, so removals() is the honest test.
+        return bool(self.additions or self.removals(config))
 
 
 @dataclass
@@ -53,8 +54,8 @@ class Plan:
     skipped: list[tuple[OwnedGame, str]] = field(default_factory=list)
     retry_later: list[tuple[OwnedGame, str]] = field(default_factory=list)
 
-    def changes(self) -> list[GamePlan]:
-        return [g for g in self.games if g.changed]
+    def changes(self, config: RuleConfig) -> list[GamePlan]:
+        return [g for g in self.games if g.is_changed(config)]
 
     def collection_deltas(self, config: RuleConfig) -> dict[str, tuple[set[int], set[int]]]:
         """collection name -> (appids to add, appids to remove)."""

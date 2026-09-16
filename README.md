@@ -53,11 +53,26 @@ Useful flags:
 | `--all` | recategorize every owned game |
 | `--app APPID` | only this app (repeatable), handy for testing a rule change |
 | `--limit N` | stop after N games |
+| `--include-client-apps` | also file family-shared and never-launched free-to-play titles (see below) |
 | `--source local` | read existing collections from the local Steam client mirror instead of the cloud |
 | `-y` | `apply` without the confirmation prompt |
 
 Other commands: `steamshelf status`, `steamshelf collections`,
 `steamshelf config`, `steamshelf cache --clear`.
+
+### Games Steam shows but does not say you own
+
+`IPlayerService/GetOwnedGames` reports only what the account actually owns. Two
+kinds of thing appear in the library without being owned, and so are invisible to
+a plain run:
+
+- titles shared from another account through **Family Sharing**
+- **free-to-play** apps that have never been launched
+
+The installed Steam client records both in `localconfig.vdf`.
+`--include-client-apps` reads that file and folds them in. It needs Steam
+installed locally for the same account; tools, runtimes and anything without a
+store page are discarded as usual.
 
 ## Configuration
 
@@ -118,8 +133,11 @@ required to agree, and each match records a confidence score.
   can still overwrite a collection it had cached. Closing Steam first is the
   safest way to run it.
 - HowLongToBeat's search endpoint is undocumented and rejects roughly one
-  request in ten; steamshelf retries, but a game that finds no match lands in
-  `(HLTB) Unknown` rather than failing the run.
+  request in ten; steamshelf retries, and a game whose lookup fails outright
+  keeps its current bucket and is picked up by the next run.
+- Steam occasionally answers the websocket handshake with 502 across every
+  connection manager. steamshelf retries the whole fleet three times; if it
+  still fails, re-run - the metadata cache makes a second attempt cheap.
 
 ## Development
 

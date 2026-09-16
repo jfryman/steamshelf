@@ -22,6 +22,7 @@
 | `--all` | reconsider every owned game |
 | `--app APPID` | only this app, repeatable - the fast way to test a rule change |
 | `--limit N` | stop after N games |
+| `--include-client-apps` | fold in apps from `localconfig.vdf` that the account does not own |
 | `--source cloud\|local` | where existing collections are read from (default cloud) |
 | `--store-delay` / `--hltb-delay` | pacing, in seconds |
 | `-q` | suppress per-game progress |

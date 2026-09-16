@@ -99,3 +99,18 @@ def test_one_failed_lookup_does_not_end_the_sweep():
 
     assert [p.game.appid for p in plan.games] == [70, 620]
     assert [g.appid for g, _reason in plan.retry_later] == [220]
+
+
+def test_membership_of_a_foreign_collection_is_not_a_pending_change():
+    config = RuleConfig()
+    config.enabled.update({"hltb": False, "rating": False, "deck": False})
+    item = engine.GamePlan(
+        game=OwnedGame(appid=620, name="Portal 2"),
+        meta=AppMetadata(appid=620, app_type="game"),
+        hltb=None,
+        desired={"platform": ["(Platform) Windows"]},
+        # Left by Depressurizer; we may not write it, so it is not a change.
+        current={"(Platform) Windows", "(Platform) SteamOS"},
+    )
+    assert item.removals(config) == set()
+    assert not item.is_changed(config)

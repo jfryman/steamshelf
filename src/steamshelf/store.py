@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -58,6 +59,53 @@ def read_local(steamid3: int) -> CollectionSet:
             if int(ns_id) == NAMESPACE_USER:
                 version = int(ns_version)
     return CollectionSet.from_entries(entries, namespace_version=version)
+
+
+def _steam_config_dir(steamid3: int) -> Path | None:
+    for base in STEAM_DIRS:
+        candidate = base / "userdata" / str(steamid3) / "config"
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _apps_block(text: str) -> str:
+    """The body of Software/Valve/Steam/apps in a text VDF, brace-matched."""
+    marker = text.find('"apps"')
+    if marker < 0:
+        return ""
+    start = text.find("{", marker)
+    if start < 0:
+        return ""
+    depth = 0
+    for index in range(start, len(text)):
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+    return ""
+
+
+def client_known_appids(steamid3: int) -> set[int]:
+    """Appids the installed Steam client tracks state for.
+
+    `IPlayerService/GetOwnedGames` reports only apps the account actually owns,
+    which leaves out two kinds of thing the library still shows: titles shared
+    from another account via Family Sharing, and free-to-play apps that have
+    never been launched.  The client records both in `localconfig.vdf`, so this
+    is the practical way to reach them.  Returns everything found; callers rely
+    on the usual store-page checks to discard tools and runtimes.
+    """
+    config = _steam_config_dir(steamid3)
+    if config is None:
+        return set()
+    local = config / "localconfig.vdf"
+    if not local.exists():
+        return set()
+    block = _apps_block(local.read_text(errors="replace"))
+    return {int(m.group(1)) for m in re.finditer(r'^\t*"(\d{1,8})"\s*$', block, re.M)}
 
 
 def steam_is_running() -> bool:
